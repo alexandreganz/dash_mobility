@@ -1,6 +1,5 @@
 # mobility_dash
 
-[! https://img.shields.io/github/license/alexandreganz/SimMobility_UI] [! https://img.shields.io/badge/Made%20at-Starschema-red]
 This is the thesis project about building visualizations on dash using transport simulations data
 
 
