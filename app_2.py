@@ -154,6 +154,80 @@ vc_content = html.Div(
             )
 
 
+vc_conten_2 = html.Div(
+            [
+                html.H2("Drop your Subtrip.csv files below", className="display-5"),
+                html.P("This is the text container where you can put your text."),
+                
+                dcc.Upload(
+                    [
+                        'Drag and Drop or ',
+                        html.A('Select a File')
+                        ],
+                    style={
+                        'width': '100%',
+                        'height': '60px',
+                        'lineHeight': '60px',
+                        'borderWidth': '1px',
+                        'borderStyle': 'dashed',
+                        'borderRadius': '5px',
+                        'textAlign': 'center'
+                        },
+                    id='upload-data',
+                    multiple=True),
+                html.Div(id='file-list'),
+                html.Button('Process Files', id='transform-button', n_clicks=0),
+                html.Hr(),
+                dcc.Loading(
+                    id='loading',
+                    type='default',
+                    children=[
+                        html.Div(
+                            [
+                                dcc.Dropdown(
+                                    id='color-dropdown',
+                                    options=[
+                                        {'label': 'Education', 'value': 'education_category'},
+                                        {'label': 'Income', 'value': 'range_income'},
+                                        {'label': 'Gender', 'value': 'gender'},
+                                        {'label': 'Age', 'value': 'age'},
+                                        {'label': 'Transport Mode', 'value': 'mode'},
+                                        {'label': 'Trip Count', 'value': 'distr'},
+                                        ],
+                                    value='distr',
+                                    clearable=False,
+                                    style={'display': 'none'}
+                                    )
+                                ]
+                            ),
+                        dbc.Row(html.Div(id='visualization-1', style={'display': 'none'})),
+                        dbc.Row(
+                            [
+                                dbc.Col(html.Div("One of three columns")),
+                                dbc.Col(html.Div("One of three columns")),
+                                dbc.Col(html.Div("One of three columns")),
+                                ]
+                            ),
+                        dbc.Row(dbc.Col(html.Div("A single column"))),
+                        dbc.Row(dbc.Col(html.Div("A single column"))),
+                        dbc.Row(
+                            [
+                                dbc.Col(html.Div("One of three columns")),
+                                dbc.Col(html.Div("One of three columns")),
+                                dbc.Col(html.Div("One of three columns")),
+                                ]
+                            )
+                        ],
+                    ),
+                html.Div(id='alert-message'),
+                ],
+            id="page-content",className="vc-content"
+
+            )
+
+
+
+
 
 @app.callback(
     [
@@ -214,7 +288,7 @@ def render_page_content(pathname):
     if pathname == "/":
         return vc_content
     elif pathname == "/calendar":
-        return html.P("This is your calendar... not much in the diary...")
+        return vc_conten_2
     elif pathname == "/messages":
         return html.P("Here are all your messages")
     # If the user tries to reach a different page, return a 404 message
