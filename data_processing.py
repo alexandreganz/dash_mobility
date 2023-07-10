@@ -107,11 +107,11 @@ def process_files(contents, label_prefix='scenario'):
     mapping_dict = {'f': False, 't': True}
     appended_df[boolean_columns] = appended_df[boolean_columns].replace(mapping_dict)
     appended_df['count'] = 1
-    #appended_df['start_time'] = appended_df['start_time'].dt.strftime('%H:%M')  # Format time to hour and minute
-    
+    appended_df['start_time'] = appended_df['start_time'].dt.strftime('%H:%M')  # Format time to hour and minute
+    appended_df['time_range_2'] = appended_df['time_range'].dt.strftime('%H:%M')  
     # Select and reorder columns
     columns_to_keep = [
-        'person_id', 'trip_id', 'mode', 'start_time','end_time', 'time_range', 'travel_time',
+        'person_id', 'trip_id', 'mode', 'start_time', 'time_range','time_range_2', 'travel_time',
         'total_distance', 'gender', 'education_category', 'age',
         'range_income', 'label', 'distr', 'origin_lat', 'origin_long', 'destination_lat', 'destination_long',
         'count', 'distri'

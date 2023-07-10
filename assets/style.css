@@ -71,3 +71,8 @@
     margin-right: 2rem;
     padding: 2rem 1rem;
   }
+
+  body{
+    background-color: rgb(238, 238, 238);
+    margin: 0;
+}

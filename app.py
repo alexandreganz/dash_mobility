@@ -12,6 +12,7 @@ feature you must install dash-bootstrap-components >= 0.11.0.
 For more details on building multi-page Dash applications, check out the Dash
 documentation: https://dash.plot.ly/urls
 """
+# Import necessary libraries
 import dash
 import dash_bootstrap_components as dbc
 from dash import Input, Output, dcc, html
@@ -19,31 +20,36 @@ from dash.dependencies import Input, Output, State
 import dash_gif_component as gif
 import pandas as pd
 import plotly.express as px
+import dash_loading_spinners as dls
 import numpy as np
 import geopandas as gpd
 from keplergl import KeplerGl
 
+# Import local modules
 from data_processing import process_files
-
 from visualization import *
 
 
+
+# Define the path to the SimMobility logo
 PLOTLY_LOGO = "assets/SimMobility_logo.png"
 
+# Create the Dash app
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME])
 
+# Define the sidebar layout
 sidebar = html.Div(
     [
         html.Div(
             [
-                # width: 3rem ensures the logo is the exact width of the
-                # collapsed sidebar (accounting for padding)
+                # Logo and sidebar header
                 html.Img(src=PLOTLY_LOGO, style={"width": "3rem"}),
                 html.H2("Locations"),
             ],
             className="sidebar-header",
         ),
         html.Hr(),
+        # Sidebar navigation links
         dbc.Nav(
             [
                 dbc.NavLink(
@@ -67,7 +73,7 @@ sidebar = html.Div(
                 dbc.NavLink(
                     [
                         html.I(className="fa fa-bus me-2"),
-                        html.Span("Singapoore"),
+                        html.Span("Singapore"),
                     ],
                     href="/Singapore",
                     active="exact",
@@ -79,11 +85,10 @@ sidebar = html.Div(
     ],
     className="sidebar",
 )
-
-
+# Define the content layout
 content = html.Div(id="page-content", className="content")
 
-
+# Define the main page content
 main_page = html.Div(
     [
         dbc.Row(dbc.Col(html.H1("Welcome to SimMobility Visualization"))),
@@ -181,75 +186,41 @@ main_page = html.Div(
 )
 
 
-
+# Define the dropdown options for the histogram
 dropdown_options_histogram = [
-                                {"label": "Education", "value": "education_category"},
-                                {"label": "Income", "value": "range_income"}
-                            ]
+    {"label": "Education", "value": "education_category"},
+    {"label": "Gender", "value": "gender"},
+    {"label": "Age", "value": "age"},
+    {"label": "Income", "value": "range_income"},
+    {"label": "Job", "value": "job_name"}
+]
 
 
 
-vc_content = html.Div(
+
+
+# Callback to show/hide the titles based on the button click
+@app.callback(
     [
-        html.H2("Drop your Subtrip.csv files below"),
-        html.P("This is the text container where you can put your text."),
-        dcc.Upload(
-            ["Drag and Drop or ", html.A("Select a File")],
-            style={
-                "width": "100%",
-                "height": "60px",
-                "lineHeight": "60px",
-                "borderWidth": "1px",
-                "borderStyle": "dashed",
-                "borderRadius": "5px",
-                "textAlign": "center",
-            },
-            id="upload-data",
-            multiple=True,
-        ),
-        html.Div(id="file-list"),
-        html.Button("Process Files", id="transform-button", n_clicks=0),
-        html.Hr(),
-        dcc.Loading(
-            id="loading",
-            type="default",
-            children=[
-                html.Div(
-                    [
-                        
-                        html.Div(id="visualization-1", style={"display": "none"}),
-                        dbc.Row(
-                           [
-                               dbc.Col(html.Div(id="fig-tours-container")),
-                               dbc.Col(html.Div("One of three columns")),
-                           ] 
-                        ),
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    dcc.Dropdown(
-                                        id="color-dropdown",
-                                        options=dropdown_options_histogram,
-                                        value="education_category",
-                                        clearable=False,
-                                        style={"display": "none"},
-                                    )
-                                ),
-                                html.Div(id="fig-trips-container")# Add this line
-                            ]
-                        ),
-                        html.Iframe(id='map-iframe', src='',height='1000', width='1000'),
-                    ]
-                )
-            ],
-        ),
-        html.Div(id="alert-message"),
+        Output("sim-title", "style"),
+        Output("demo-title", "style"),
+        Output("flow-title", "style"),
     ],
-    id="page-content",
-    className="vc-content",
+    [
+        Input("transform-button", "n_clicks"),
+    ],
+    prevent_initial_call=True,
 )
+def show_titles(n_clicks):
+    if n_clicks > 0:
+        return {"display": "block"}, {"display": "block"}, {"display": "block"}
+    else:
+        return {"display": "none"}, {"display": "none"}, {"display": "none"}
 
 
+
+
+# Callback to process uploaded files and update the visualizations
 @app.callback(
     [
         Output("visualization-1", "children"),
@@ -258,7 +229,8 @@ vc_content = html.Div(
         Output("alert-message", "children"),
         Output("fig-tours-container", "children"),
         Output("fig-trips-container", "children"),
-        Output('map-iframe', 'srcDoc')
+        Output("fig-mode-container", "children"),
+        Output("fig-trips-stacked-container", "children"),
     ],
     [
         Input("transform-button", "n_clicks"),
@@ -275,8 +247,6 @@ def process_uploaded_files(n_clicks, color_value, contents):
             {"display": "none"},
             html.Div("Please upload files before processing."),
             None,
-            None,
-            '',
         )
     else:
         combined_data = process_files(contents)
@@ -285,23 +255,8 @@ def process_uploaded_files(n_clicks, color_value, contents):
             fig_trips = trips_day(combined_data)
             fig_tour = tours_person(combined_data)
             fig = create_histogram_plot(combined_data, color_value)
-            
-            zones = gpd.read_file('data/shp_files/sm_zone.shp')
-            zones.to_crs(epsg=4326)
-            
-            trips_df = combined_data[['person_id','start_time','travel_time','origin_lat','origin_long','destination_lat','destination_long']]
-
-            trips_df['start_time'] = trips_df['start_time'].dt.strftime('%Y-%m-%d %H:%M:%S') 
-            
-            config = {}
-            exec(open("hex_config.py").read(), config)
-            config = config["config"]
-            map_1 = KeplerGl(height=800, data={'zones': zones, 'trips_df': trips_df}, config=config)
-            map_1.save_to_html(file_name="map_kepler.html")
-
-            with open('map_kepler.html', 'r') as f:
-                kepler_html = f.read()
-            
+            fig_mode = mode_share(combined_data)
+            fig_stacked = create_stacked_histogram_plot(combined_data, color_value)
             return [
                 dcc.Graph(figure=fig_trips),
                 {"display": "block"},
@@ -309,7 +264,8 @@ def process_uploaded_files(n_clicks, color_value, contents):
                 "",
                 dcc.Graph(figure=fig_tour),
                 dcc.Graph(figure=fig),
-                kepler_html,
+                dcc.Graph(figure=fig_mode),
+                dcc.Graph(figure= fig_stacked),
             ]
         else:
             return (
@@ -318,11 +274,7 @@ def process_uploaded_files(n_clicks, color_value, contents):
                 {"display": "none"},
                 html.Div("No file uploaded yet."),
                 None,
-                None,
-                '',
             )
-
-
 
 @app.callback(
     Output("file-list", "children"),
@@ -334,6 +286,13 @@ def update_file_list(filenames):
         return html.Ul([html.Li(filename) for filename in filenames])
     else:
         return html.Div("No files selected.")
+    
+    
+    
+    
+    
+    
+    
 
 
 app.layout = html.Div([dcc.Location(id="url"), sidebar, content])
@@ -359,6 +318,99 @@ def render_page_content(pathname):
         ],
         className="p-3 bg-light rounded-3",
     )
+    
+    
+    
+    
+    
+# Define the content layout for the Virtual City page
+vc_content = html.Div(
+    [
+        html.H2("Drop your Subtrip.csv files below"),
+        html.P("This is the text container where you can put your text."),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dcc.Upload(
+                    id='upload-data-single',
+                    children=html.Div([
+                        'Drop here your Baseline Scenario']),
+                    style={
+                        'width': '100%',
+                        'height': '100px',
+                        'lineHeight': '100px',
+                        'borderWidth': '1px',
+                        'borderStyle': 'dashed',
+                        'borderRadius': '5px',
+                        'textAlign': 'center'},
+                    multiple=False)),
+                dbc.Col(dcc.Upload(
+                    ["Drop here your other Scenarios "],
+                    style={
+                        "width": "100%",
+                        "height": "100px",
+                        "lineHeight": "100px",
+                        "borderWidth": "1px",
+                        "borderStyle": "dashed",
+                        "borderRadius": "5px",
+                        "textAlign": "center"},
+                    id="upload-data",
+                    multiple=True))
+                ]),
+        html.Div(id="file-list"),
+        html.Button("Process Files", id="transform-button", n_clicks=0),
+        html.Hr(),
+        dbc.Row(dbc.Col(html.H3("Simulation Comparision",  id="sim-title", style={"display": "none"}))),
+        html.Div(id="visualization-1", style={"display": "none",'backgroundColor':'#f8f9fa'}),
+        html.Br(),
+        dbc.Row(
+            [
+                dbc.Col(html.Div(id="fig-tours-container")),
+                dbc.Col(html.Div(id="fig-mode-container"))
+            ]
+        ),
+        html.Br(),
+        dbc.Row(
+            [
+                dbc.Col(html.H3("Demographic Analysis", id="demo-title", style={"display": "none"}))
+                ]),
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.Div(
+                        [
+                            dcc.Dropdown(
+                                id="color-dropdown",
+                                options=dropdown_options_histogram,
+                                value="gender",
+                                clearable=False,
+                                style={"display": "none"}
+                            )
+                        ],style={'width': '48%', 'float': 'center', 'display': 'inline-block'}
+                    )
+                )
+            ]
+        ),
+        dls.Hash(
+            dbc.Row(
+                children=[
+                    dbc.Col(html.Div(id='fig-trips-container')),
+                    dbc.Col(html.Div(id='fig-trips-stacked-container'))]),
+            ),
+        html.Br(),
+        dbc.Row(
+            [
+                dbc.Col(html.H3("Flow Chart", id= "flow-title", style={"display":"none"}))
+            ]),
+        dbc.Row(
+            [
+                
+            ]
+        ),
+        html.Div(id="alert-message")
+        
+        ],id="page-content",className="vc-content")
+
 
 
 if __name__ == "__main__":
